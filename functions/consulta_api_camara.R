@@ -11,8 +11,6 @@ url <- paste0('www.camara.leg.br/SitCamaraWS/Orgaos.asmx/ObterAndamento?sigla=',
               '&ano=',ano,
               '&dataIni=&codOrgao=')
 
-data_pl <- GET(url)
-
 
 # Função para recuperar tramitações para uma PL
 pega_tram <- function(data_url){
