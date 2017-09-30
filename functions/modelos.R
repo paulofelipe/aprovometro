@@ -77,8 +77,10 @@ lgbm_fit_val <- function(learning_rate,
     y_val <- y[index[[i]]$val]
     pred <- predict(fit, x_val)
     
-    f1_score[i] <- f1Score(y_val, pred)
+    f1_score[i] <- f1Score(y_val, pred, cutoff = 0.5)
     print(f1_score)
+    print(precision(y_val, pred, cutoff = 0.5))
+    print(recall(y_val, pred, cutoff = 0.5))
   }
   
   list(Score = mean(f1_score), Pred = 0)

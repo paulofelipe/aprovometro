@@ -109,7 +109,6 @@ proposicao %>%
   add_column(temas = lista_tema,
              comissoes = lista_comissao) %>% 
   arrange(-chance) %>% 
-  head() %>% 
   select(siglaTipo, tipoImg, numero, ano, temas, everything(), -NOM_PROPOSICAO) %>% 
   toJSON(pretty = FALSE) %>% 
   writeLines('produced_data/aprovometro.json')
