@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
+<style>
+
+body {
+  margin: auto;
+  width: 960px;
+  font-family: 'Roboto', sans-serif;
+}
+
+</style>
+<body> 
+    <div id="aprovometro"></div>
+</body>
+
+<script>
+
+    // Chance de aprovação - Array
+    prob = [0.4]
+
+    // Define as margens, altura e largura
+    var margin = {top: 0, right: 20, bottom: 30, left: 50},
+        width = 960 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+    // Cria o svg
+    var svg = d3.select("#aprovometro").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    // Adiciona um elemento "defs"aao svg (defs receberá o gradiente)
+    var defs = svg.append("defs");
+
+    // Adiciona o gradiente ao defs
+    var linearGradient = defs.append("linearGradient")
+        .attr("id", "linear-gradient");
+
+    // Cores do gradiente
+    linearGradient.selectAll("stop")
+        .data([
+            {offset: "0%", color: "#F44336"},
+            {offset: "25%", color: "#FF3B3B"},
+            {offset: "50%", color: "#FFC107"},
+            {offset: "75%", color: "#CDDC39"},
+            {offset: "100%", color: "#4CAF50"}
+        ])
+        .enter().append("stop")
+        .attr("offset", function(d) { return d.offset; })
+        .attr("stop-color", function(d) { return d.color; });
+
+    // Desenha o retângulo e define a cor de preenchimento
+    svg.append("rect")
+        .attr("width", "calc(100% - 100px)")
+        .attr("height", 20)
+        .attr("transform", "translate(0, 80)")
+        .style("fill", "url(#linear-gradient)");
+
+    // Escala do eixo x
+    // É usado para posicionar o triângulo de marcação
+    // Domínio de 0 a 1
+    var x = d3.scaleLinear()
+    .range([0, width + margin.left + margin.right - 100])
+    .domain([0, 1]);
+
+    // Cria o triângulo 
+    var arc = d3.symbol().type(d3.symbolTriangle).size(function(d){ return 20*20; });       
+    
+    // Adiciona o triângulo à visualização
+    // O posicionamento é dado pela probabilidade
+    // Inclui a transição
+    var triangle = svg.selectAll('path')
+        .remove()
+        .exit()
+        .data(prob)
+        .enter()
+        .append('path')
+        .attr('d', arc)
+        .attr('fill', '#488aff')
+        .attr('transform', function(d) {
+                return "translate(" + x(0) + ",60) rotate(180)";
+        })
+        .transition().duration(3000)
+        .attr('transform', function(d) {
+                return "translate(" + x(prob) + ",60) rotate(180)";
+        });        
+
+
+</script>

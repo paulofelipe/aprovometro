@@ -4,6 +4,7 @@ library(tidyverse)
 library(ModelMetrics)
 library(rBayesianOptimization)
 library(data.table)
+library(Matrix)
 
 load('produced_data/treinamento.Rdata')
 
@@ -34,7 +35,8 @@ lgbm_fit <- function(dtrain,
                  bagging_freq = 1,
                  bagging_fraction = bagging_fraction,
                  metric = "binary_logloss",
-                 scale_pos_weight = scale_pos_weight,
+                 #scale_pos_weight = scale_pos_weight,
+                 is_unbalance = TRUE,
                  verbosity = -1,
                  verbose = -1
   )
@@ -86,6 +88,50 @@ lgbm_fit_val <- function(learning_rate,
   list(Score = mean(f1_score), Pred = 0)
 }
 
+lgbm_fit_val2 <- function(learning_rate,
+                         num_leaves,
+                         feature_fraction,
+                         bagging_fraction,
+                         nrounds){
+  f1_score <- vector(mode = "numeric", length = length(index))
+  precision_ <- vector(mode = "numeric", length = length(index))
+  recall_ <- vector(mode = "numeric", length = length(index))
+  predictions <- list(length = length(index))
+  for(i in 1:length(index)){
+    x_train <- x[index[[i]]$train,]
+    y_train <- y[index[[i]]$train]
+    
+    pos_weight <- sum(y_train == 0)/sum(y_train == 1)
+    
+    dtrain <- lgb.Dataset(x_train,
+                          label = y_train)
+    
+    rm(x_train, y_train); gc();
+    
+    fit <- lgbm_fit(dtrain, 
+                    scale_pos_weight = pos_weight,
+                    learning_rate = learning_rate,
+                    num_leaves = num_leaves,
+                    feature_fraction = feature_fraction,
+                    bagging_fraction = bagging_fraction,
+                    nrounds = nrounds)
+    
+    x_val <- x[index[[i]]$val, ]
+    y_val <- y[index[[i]]$val]
+    pred <- predict(fit, x_val)
+    
+    predictions[[i]] <- pred
+    f1_score[i] <- f1Score(y_val, pred, cutoff = 0.5)
+    precision_[i] <- precision(y_val, pred, cutoff = 0.5)
+    recall_[i] <- recall(y_val, pred, cutoff = 0.5)
+    print(f1_score)
+    print(precision(y_val, pred, cutoff = 0.5))
+    print(recall(y_val, pred, cutoff = 0.5))
+  }
+  
+  list(f1_score = f1_score, precision = precision_, recall = recall_, 
+       pred = predictions)
+}
 
 # Validação ----------------------------------------------------------------
 
@@ -94,6 +140,7 @@ for(i in 1:6){
   data_fim <- datas[24 + i - 1]
   data_inicio <- datas[1 + i - 1]
   data_val <- datas[24 + i + 5]
+  print(data_val)
   index[[i]] <- list()
   index[[i]]$train <- which(y_df$data <= data_fim & y_df$data >= data_inicio)
   index[[i]]$val <- which(y_df$data == data_val)
@@ -114,21 +161,29 @@ ba_search <- BayesianOptimization(lgbm_fit_val,
                                   init_points = 10,
                                   n_iter = 20,
                                   acq = "ucb",
-                                  kappa = 1, 
+                                  kappa = 1,
                                   eps = 0.0,
                                   verbose = TRUE)
 
-# do.call(lgbm_fit_val, as.list(ba_search$Best_Par))
+# ba_search <- list(Best_Par = c("num_leaves" = 25,
+#                                "learning_rate" = 0.1,
+#                                "nrounds" = 200,
+#                                "bagging_fraction" = 1,
+#                                "feature_fraction" = 0.1004679))
+scores <- do.call(lgbm_fit_val2, as.list(ba_search$Best_Par))
+scores$precision %>% mean
+scores$recall %>% mean
 # lgbm_fit_val(learning_rate = 0.1,
 #              num_leaves = 24,
 #              feature_fraction = 0.1,
 #              bagging_fraction = 1,
 #              nrounds = 155)
-#Round = 17	num_leaves = 24.0000	learning_rate = 0.1000	nrounds = 155.0000	bagging_fraction = 1.0000	feature_fraction = 0.1000	Value = 0.3880 
+#num_leaves    learning_rate          nrounds bagging_fraction feature_fraction 
+#37.0000000        0.1000000      112.0000000        1.0000000        0.1004679 
 
 # Teste -------------------------------------------------------------------
 index <- list()
-for(i in 1:6){
+for(i in 1:8){
   data_fim <- datas[30 + i - 1]
   data_inicio <- datas[7 + i - 1]
   data_val <- datas[30 + i + 5]

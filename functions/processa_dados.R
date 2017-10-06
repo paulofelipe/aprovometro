@@ -12,7 +12,7 @@ library(tm)
 
 
 # Seleciona propostas que possuem tramitações -----------------------------
-prop_df <- fread('produced_data/propostas.csv')
+prop_df <- fread('raw_data/propostas_detalhes.csv')
 propostas1 <- unique(prop_df$NOM_PROPOSICAO)
 
 tram_df <- fread('produced_data/tramitacoes.csv')
@@ -22,10 +22,12 @@ propostas <- intersect(propostas1, propostas2)
 
 tram_df <- tram_df %>% 
   filter(NOM_PROPOSICAO %in% propostas) %>% 
+  arrange(NOM_PROPOSICAO) %>% 
   as.data.table()
 
 prop_df <- prop_df %>% 
   filter(NOM_PROPOSICAO %in% propostas) %>% 
+  arrange(NOM_PROPOSICAO) %>% 
   as.data.table()
 
 rm(propostas, propostas1, propostas2); gc();
@@ -35,12 +37,12 @@ rm(propostas, propostas1, propostas2); gc();
 
 tram_df <- tram_df %>% 
   mutate(APROVADA = ifelse(grepl(pattern = '^Transformado n', DES_TRAM), 1, 0),
-         ARQUIVADA = ifelse(grepl(pattern = '^Arquiva|^ARQUIVA|Declarado prejudicad',
+         ARQUIVADA = ifelse(grepl(pattern = '^Arquiva|^ARQUIVA|Declarado prejudicad|comunicando o arquiv|Declarada prejudicada|seu consequente arquivamento|ao Arquivo|Ao Arquivo|Ao arquivo',
                                   DES_TRAM), 1, 0),
          APENSADA = ifelse(grepl(pattern = 'apensado ao PL|Apense-se ao P|Apense-se à',
                                       DES_TRAM), 1, 0),
          DESARQUIVADA = ifelse(grepl('^Desarquivad', DES_TRAM), 1, 0),
-         DESAPENSADA = ifelse(grepl(pattern = "Desapensação automática des",
+         DESAPENSADA = ifelse(grepl(pattern = "Desapensação automática des|Desapense-se|desapense-se",
                                          DES_TRAM), 1, 0))
 
 # Stop words --------------------------------------------------------------
@@ -65,12 +67,12 @@ dic_tram <-tram_df %>%
 
 tram_vocab <- create_vocabulary(dic_tram, stopwords = stop_words,
                                 ngram = c(ngram_min = 1L,
-                                          ngram_max = 1L))
+                                          ngram_max = 2L))
 
 pruned_vocab  <- prune_vocabulary(tram_vocab,
                                   vocab_term_max = 1000,
-                                  doc_proportion_max = 0.5,
-                                  doc_proportion_min = 0.01)
+                                  doc_proportion_min = 0.01,
+                                  doc_proportion_max = 0.9)
 
 vectorizer <- vocab_vectorizer(pruned_vocab)
 
@@ -79,17 +81,26 @@ tfidf = TfIdf$new()
 dtm_tram <- fit_transform(dtm_tram, tfidf)
 
 # Vetor de temas ---------------------------------------------------------
-temas <- prop_df %>% 
-  pull(AREAS_TEMATICAS_APRESENTACAO)
-temas <- str_split(sort(unique(temas)),
-                   pattern = "(,(?=\\S)|:)") %>%
-  unlist() %>%
-  unique()
+# temas <- prop_df %>% 
+#   pull(AREAS_TEMATICAS_APRESENTACAO)
+# temas <- str_split(sort(unique(temas)),
+#                    pattern = "(,(?=\\S)|:)") %>%
+#   unlist() %>%
+#   unique()
 
 # Vetor de tipos de proposicao ------------------------------------------
 tipo_prop <- prop_df %>% 
-  pull(SIG_TIPO_PROPOSICAO) %>% 
+  pull(NOM_PROPOSICAO) %>% 
+  word(., 1) %>% 
   unique
+
+# Vetor de regimes ------------------------------------------------------
+tipo_regime <- prop_df %>% 
+  pull(REGIME) %>% 
+  word(., 1) %>% 
+  unique %>% 
+  sort() %>% 
+  .[-1]
 
 # Vetor de comissões ----------------------------------------------------
 comissoes <- tram_df %>% 
@@ -108,15 +119,17 @@ comissoes <- tram_df %>%
 
 # Vetor de partidos ------------------------------------------------------
 partidos <- prop_df %>% 
-  pull(NOM_PARTIDO_POLITICO) %>% 
+  pull(SIG_PARTIDO) %>% 
   unique %>% 
-  sort
+  sort %>% 
+  .[-1]
 
 # Vetor de UFs -----------------------------------------------------------
 ufs <- prop_df %>% 
   pull(SIG_UF) %>% 
   unique %>% 
-  sort
+  sort %>% 
+  .[-1]
 
 # Função para criar dummies ----------------------------------------------------
 cria_dummies <- function(data, levels, prefix = ""){
@@ -153,13 +166,16 @@ processa_dados <- function(data, meses = 6){
     filter(DATA_TRAM > data & DATA_TRAM <= data_meses) %>% 
     filter(APROVADA == 1) %>% 
     rename(APROVOU = APROVADA) %>% 
-    select(NOM_PROPOSICAO, APROVOU)
+    select(NOM_PROPOSICAO, APROVOU) %>% 
+    distinct()
   
   dados_treino <- left_join(dados_data_base, dados_data_posterior,
                             by = "NOM_PROPOSICAO") %>% 
     replace_na(list(APROVOU = 0)) %>% 
     group_by(NOM_PROPOSICAO) %>% 
-    mutate(APROVOU = max(APROVOU))
+    mutate(APROVOU = max(APROVOU)) %>% 
+    ungroup() %>% 
+    arrange(NOM_PROPOSICAO)
   
   # Número de tramitações nos últimos 30 dias
   ntram_30d <- tram_df %>% 
@@ -191,7 +207,7 @@ processa_dados <- function(data, meses = 6){
     select(NOM_PROPOSICAO, DATAPRESENTACAOPROPOSICAO) %>% 
     arrange(NOM_PROPOSICAO) %>% 
     mutate(dias_tramitando = as.numeric(as.Date(data) -
-                                          dmy(DATAPRESENTACAOPROPOSICAO))) %>% 
+                                          ymd(DATAPRESENTACAOPROPOSICAO))) %>% 
     select(dias_tramitando) %>% 
     as.data.frame() %>% 
     data.matrix() %>% 
@@ -210,26 +226,34 @@ processa_dados <- function(data, meses = 6){
     as(., "sparseMatrix") 
   
   # Dummies para temas
-  dummies_temas <- prop_df %>% 
-    inner_join(dados_data_base, by = "NOM_PROPOSICAO") %>% 
-    arrange(NOM_PROPOSICAO) %>% 
-    pull(AREAS_TEMATICAS_APRESENTACAO) %>% 
-    cria_dummies(data = ., levels = temas, prefix = "tema_")
-  
-  colnames(dummies_temas) <- str_replace_all(colnames(dummies_temas),
-                                             " ", "_") %>% 
-    tolower()
+  # dummies_temas <- prop_df %>% 
+  #   inner_join(dados_data_base, by = "NOM_PROPOSICAO") %>% 
+  #   arrange(NOM_PROPOSICAO) %>% 
+  #   pull(AREAS_TEMATICAS_APRESENTACAO) %>% 
+  #   cria_dummies(data = ., levels = temas, prefix = "tema_")
+  # 
+  # colnames(dummies_temas) <- str_replace_all(colnames(dummies_temas),
+  #                                            " ", "_") %>% 
+  #   tolower()
   
   # Dummies para tipo de proposicao
   dummies_tipo_prop <- prop_df %>% 
     inner_join(dados_data_base, by = "NOM_PROPOSICAO") %>% 
     arrange(NOM_PROPOSICAO) %>% 
-    pull(SIG_TIPO_PROPOSICAO) %>% 
+    pull(NOM_PROPOSICAO) %>% 
+    word(., 1) %>% 
     cria_dummies(data = ., levels = tipo_prop, prefix = "tipo_")
   
   colnames(dummies_tipo_prop) <- str_replace_all(colnames(dummies_tipo_prop),
                                              " ", "_") %>% 
     tolower()
+  
+  dummies_tipo_regime <- prop_df %>% 
+    inner_join(dados_data_base, by = "NOM_PROPOSICAO") %>% 
+    arrange(NOM_PROPOSICAO) %>% 
+    pull(REGIME) %>% 
+    word(., 1) %>% 
+    cria_dummies(data = ., levels = tipo_regime, prefix = "regime_")
   
   # Dummies para UF
   dummies_ufs <- prop_df %>% 
@@ -246,7 +270,7 @@ processa_dados <- function(data, meses = 6){
   dummies_partidos <- prop_df %>% 
     inner_join(dados_data_base, by = "NOM_PROPOSICAO") %>% 
     arrange(NOM_PROPOSICAO) %>% 
-    pull(NOM_PARTIDO_POLITICO) %>% 
+    pull(SIG_PARTIDO) %>% 
     cria_dummies(data = ., levels = partidos, prefix = "partido_")
   
   colnames(dummies_partidos) <- str_replace_all(colnames(dummies_partidos),
@@ -290,8 +314,12 @@ processa_dados <- function(data, meses = 6){
   colnames(dtm_tram_train) <- paste0("tram_", colnames(dtm_tram_train))
   
   # Consolida as features
-  x <- cBind(ntram, ntram_30d, ntram_90d, tram_dias, dummies_tipo_prop, dummies_temas,
+  x <- cBind(ntram, ntram_30d, ntram_90d, tram_dias, dummies_tipo_prop, 
+             dummies_tipo_regime,
              dummies_ufs, dummies_partidos, comissoes_df, dtm_tram_train)
+  if(nrow(x) != nrow(dados_treino)){
+    stop("Tamanhos diferentes!")
+  }
   return(list(y = dados_treino, x = x))
 }
   
@@ -314,6 +342,10 @@ gera_base <- function(data_inicio, data_fim){
   return(list(y = y, x = x))
 }
 
-# teste <- processa_dados(data = "2016-04-30")
+#teste <- processa_dados(data = "2017-10-04")
 # dim(teste$x)
 
+# for(i in 1:length(data_seq)){
+#   print(data_seq[i])
+#   teste <- processa_dados(data_seq[i])
+# }

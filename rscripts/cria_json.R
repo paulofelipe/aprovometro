@@ -26,7 +26,7 @@ corrige_temas <- function(x) {
 }
 
 # Dados propostas ----------------------------------------------------
-dados_propostas <- fread('produced_data/propostas.csv')
+dados_propostas <- fread('raw_data/propostas_detalhes.csv')
 
 # Dados tramitações --------------------------------------------------
 dados_tramitacoes <- fread('produced_data/tramitacoes.csv')
@@ -34,8 +34,17 @@ dados_tramitacoes <- fread('produced_data/tramitacoes.csv')
 # Dados com predições ------------------------------------------------
 chance_final <- fread('produced_data/dados_chance.csv')
 
+# Situação ------------------------------------------------------------
+situacao <- fread('produced_data/situacao.csv')
+
+# Checa situação da tabela chance_final
+chance_final <- chance_final %>%
+  left_join(situacao) %>% 
+  filter(!str_detect(ultima_situacao, "Arquivada|Vetado totalmente"))
+
 # Demais dados
 dados_area_tematica_relacional <- dados_propostas %>% 
+  mutate(AREAS_TEMATICAS_APRESENTACAO = "Sem tema") %>% 
   select(NOM_PROPOSICAO, AREAS_TEMATICAS_APRESENTACAO) %>% 
   mutate(tema = str_replace(AREAS_TEMATICAS_APRESENTACAO, ', ', '='),
          tema = str_split(tema, ",")) %>% 
@@ -55,6 +64,9 @@ dados_comissoes_relacional <- dados_tramitacoes %>%
   distinct()
 
 proposicao <- dados_propostas %>% 
+  mutate(SIG_TIPO_PROPOSICAO = word(NOM_PROPOSICAO, 1),
+         ANO_PROPOSICAO = substr(DATAPRESENTACAOPROPOSICAO, 1, 4),
+         NUM_PROPOSICAO = word(str_replace(NOM_PROPOSICAO, "/", " "), 2)) %>% 
   select(NOM_PROPOSICAO, SIG_TIPO_PROPOSICAO, ANO_PROPOSICAO, NUM_PROPOSICAO, DATAPRESENTACAOPROPOSICAO) %>% 
   distinct()
 
@@ -92,10 +104,10 @@ lista_comissao <- vector("list", length(proposicoes))
 j <- 1
 for(i in proposicoes){
   print(j)
-  lista_tema[[j]] <- dados_area_tematica_relacional %>% 
-    filter(NOM_PROPOSICAO == i) %>% 
+  lista_tema[[j]] <- dados_area_tematica_relacional %>%
+    filter(NOM_PROPOSICAO == i) %>%
     select(tema)
-  
+
   lista_comissao[[j]] <- dados_comissoes_relacional %>% 
     filter(NOM_PROPOSICAO == i) %>% 
     select(comissao)
