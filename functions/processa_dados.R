@@ -308,8 +308,8 @@ processa_dados <- function(data, meses = 6){
     tolower() %>% 
     word_tokenizer() %>% 
     itoken(progressbar = FALSE) %>% 
-    create_dtm(., vectorizer) %>% 
-    transform(tfidf)
+    create_dtm(., vectorizer) 
+    #transform(tfidf)
   
   colnames(dtm_tram_train) <- paste0("tram_", colnames(dtm_tram_train))
   
@@ -342,7 +342,7 @@ gera_base <- function(data_inicio, data_fim){
   return(list(y = y, x = x))
 }
 
-#teste <- processa_dados(data = "2017-10-04")
+#teste <- processa_dados(data = "2013-10-23")
 # dim(teste$x)
 
 # for(i in 1:length(data_seq)){

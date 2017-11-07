@@ -3,6 +3,7 @@ library(data.table)
 library(tidyverse)
 library(jsonlite)
 library(progress)
+library(lubridate)
 
 propostas_ano <- function(ano){
   df <- data.frame()
@@ -35,14 +36,6 @@ propostas_ano <- function(ano){
   
   df
 }
-anos <- 2003:2017
-dados_propostas <- map_df(anos, propostas_ano)
-
-fwrite(dados_propostas, 'raw_data/propostas.csv')
-
-dados_propostas <- fread('raw_data/propostas.csv')
-
-urls <- dados_propostas$uri
 
 detalhes_propostas <- function(url){
   sucesso <- FALSE
@@ -92,19 +85,53 @@ detalhes_propostas <- function(url){
              stringsAsFactors = FALSE)
 }
 
+###########################################################################
+#########################################################################
+anos <- 2017:2017
+dados_propostas <- map_df(anos, propostas_ano)
 
-barra <- progress_bar$new(total = length(urls),
-                          format = "[:bar] :percent eta: :eta")
+fwrite(dados_propostas, 'raw_data/propostas.csv')
 
-propostas_detalhes <- data.frame()
-for(i in 1:length(urls)){
-  print(i)
-  detalhes_tmp <- detalhes_propostas(urls[i])
-  propostas_detalhes <- bind_rows(propostas_detalhes, detalhes_tmp)
-  rm(detalhes_tmp)
+dados_propostas <- fread('raw_data/propostas.csv')
+
+for(i in anos){
+  urls <- dados_propostas %>% 
+    filter(ano == i) %>% 
+    pull(uri) 
+  
+  barra <- progress_bar$new(total = length(urls),
+                            format = "[:bar] :percent eta: :eta")
+  propostas_detalhes <- NULL
+  while(is.null(propostas_detalhes)){
+    try(
+      propostas_detalhes <- map_df(urls, ~{
+        barra$tick()
+        detalhes_propostas(.x)}
+      )
+    )
+  }
+  
+  
+  write.csv(propostas_detalhes,
+            paste0('raw_data/propostas_detalhes_ano_',i,'.csv'), 
+            row.names = FALSE)
+  rm(propostas_detalhes)
 }
-#propostas_detalhes <- map_df(urls, ~{
-  barra$tick()
-  detalhes_propostas(.x)})
+
+carregar_propostas <- function(ano){
+  read.csv(paste0('raw_data/propostas_detalhes_ano_',ano,'.csv'),
+           stringsAsFactors = FALSE)
+}
+
+anos <- 2003:2017
+propostas_detalhes <- map_df(anos, carregar_propostas)
+
+# propostas_detalhes <- data.frame()
+# for(i in 1:length(urls)){
+#   print(i)
+#   detalhes_tmp <- detalhes_propostas(urls[i])
+#   propostas_detalhes <- bind_rows(propostas_detalhes, detalhes_tmp)
+#   rm(detalhes_tmp)
+# }
 
 fwrite(propostas_detalhes, 'raw_data/propostas_detalhes.csv')
