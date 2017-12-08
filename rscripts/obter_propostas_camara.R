@@ -87,7 +87,7 @@ detalhes_propostas <- function(url){
 
 ###########################################################################
 #########################################################################
-anos <- 2017:2017
+anos <- 2003:2017 # se já exisitir os outros anos, pode-se definir apenas o último
 dados_propostas <- map_df(anos, propostas_ano)
 
 fwrite(dados_propostas, 'raw_data/propostas.csv')
