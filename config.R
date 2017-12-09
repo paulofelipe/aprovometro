@@ -11,4 +11,7 @@ if(!require(devtools)){
 }
 
 library(devtools)
+
+# Precisa de softwares auxiliares para a instalação
+# Ver https://github.com/Microsoft/LightGBM/tree/master/R-package
 install_github("Microsoft/LightGBM", subdir = "R-package")

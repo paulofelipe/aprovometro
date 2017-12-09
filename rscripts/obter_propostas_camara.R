@@ -9,7 +9,7 @@ propostas_ano <- function(ano){
   df <- data.frame()
   i <- 1
   while(TRUE){
-    url <- paste0("https://dadosabertos.camara.leg.br/api/v2/proposicoes?siglaTipo=PEC&siglaTipo=PL&siglaTipo=PLP&ano=",ano,"&itens=100&pagina=",i,"&ordem=ASC&ordenarPor=id")
+    url <- paste0("https://dadosabertos.camara.leg.br/api/v2/proposicoes?siglaTipo=PEC&siglaTipo=PL&siglaTipo=PLP&ano=",ano,"&itens=100&pagina=",i,"&ordem=ASC&ordenarPor=id&dataInicio=2002-01-01&dataFim=2020-12-31")
    
     sucesso <- FALSE
     while(!sucesso){
