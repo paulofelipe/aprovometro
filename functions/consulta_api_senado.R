@@ -81,15 +81,20 @@ pega_tram_sf <- function(id){
   
   dados <- fromJSON(content(dados, type = "text", encoding = "UTF-8"))
   dados <- dados$MovimentacaoMateria$Materia$Tramitacoes$Tramitacao$IdentificacaoTramitacao
-  DES_ORGAO <- dados$OrigemTramitacao$Local$SiglaLocal
-  dados <- dados %>% 
-    select(DATA_TRAM = DataTramitacao,
-           ORDEM_TRAM = CodigoTramitacao,
-           NumeroOrdemTramitacao,
-           DES_TRAM = TextoTramitacao) %>% 
-    mutate(DES_ORGAO = paste0("SF - ", DES_ORGAO),
-           CODIGO = id) %>% 
-    arrange(DATA_TRAM, ORDEM_TRAM, NumeroOrdemTramitacao)
-  dados
+  if(!is.null(dados)){
+    DES_ORGAO <- dados$OrigemTramitacao$Local$SiglaLocal
+    dados <- dados %>% 
+      select(DATA_TRAM = DataTramitacao,
+             ORDEM_TRAM = CodigoTramitacao,
+             NumeroOrdemTramitacao,
+             DES_TRAM = TextoTramitacao) %>% 
+      mutate(DES_ORGAO = paste0("SF - ", DES_ORGAO),
+             CODIGO = id) %>% 
+      arrange(DATA_TRAM, ORDEM_TRAM, NumeroOrdemTramitacao)
+    dados
+  } else {
+    return(NULL)
+  }
+  
 }
 
