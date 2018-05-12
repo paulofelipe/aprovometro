@@ -1,4 +1,4 @@
-checkpoint('2017-12-07', scanForPackages = FALSE)
+checkpoint('2017-12-07', scanForPackages = TRUE)
 rm(list = ls()); gc()
 source('rscripts/obter_propostas_camara.R')
 rm(list = ls()); gc()

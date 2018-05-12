@@ -72,10 +72,10 @@ pega_situacao <- function(data_url){
 }
 
 pega_dados_pl <- function(NOM_PROPOSICAO){
-  Sys.sleep(0.1)
+  Sys.sleep(0.001)
   tipo <- str_split(NOM_PROPOSICAO, " ", simplify = TRUE)[,1]
-  numero <- str_extract_all(NOM_PROPOSICAO, "[0-9]{1,4}", simplify = TRUE)[,1]
-  ano <- str_extract_all(NOM_PROPOSICAO, "[0-9]{1,4}", simplify = TRUE)[,2]
+  numero <- str_extract_all(NOM_PROPOSICAO, "[0-9]{1,}", simplify = TRUE)[,1]
+  ano <- str_extract_all(NOM_PROPOSICAO, "[0-9]{1,}", simplify = TRUE)[,2]
   
   url <- paste0('www.camara.leg.br/SitCamaraWS/Orgaos.asmx/ObterAndamento?sigla=',tipo,
                 '&numero=',numero,

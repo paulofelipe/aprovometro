@@ -1,14 +1,20 @@
+# sudo apt-get install libssl-dev 
+# sudo apt-get instal cmake
+# sudo apt-get install libxml2-dev 
 if(!require(checkpoint)){
   install.packages('checkpoint')
 }
 
 library(checkpoint)
 
+dir.create('~/.checkpoint')
+
 checkpoint('2017-12-07')
 
 if(!require(devtools)){
   install.packages('devtools')
 }
+
 
 library(devtools)
 

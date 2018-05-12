@@ -15,7 +15,8 @@ library(tm)
 prop_df <- fread('raw_data/propostas_detalhes.csv')
 propostas1 <- unique(prop_df$NOM_PROPOSICAO)
 
-tram_df <- fread('produced_data/tramitacoes.csv')
+tram_df <- fread('produced_data/tramitacoes.csv') %>% 
+  na.omit()
 propostas2 <- unique(tram_df$NOM_PROPOSICAO)
 
 propostas <- intersect(propostas1, propostas2)
