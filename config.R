@@ -9,7 +9,7 @@ library(checkpoint)
 
 dir.create('~/.checkpoint')
 
-checkpoint('2017-12-07')
+checkpoint('2018-07-07')
 
 if(!require(devtools)){
   install.packages('devtools')
