@@ -11,7 +11,7 @@ library(lubridate)
 source('functions/consulta_api_senado.R')
 
 # Recupera os ids das propostas enviadas ao Senado Federal
-anos <- 2003:2017
+anos <- 2003:2018
 barra <- progress_bar$new(
   format = "[:bar] :percent eta: :eta",
   total = length(anos)

@@ -17,4 +17,4 @@ tram_df <- bind_rows(tram_df_camara, tram_df_senado)
 tram_df <- tram_df %>% 
   arrange(NOM_PROPOSICAO, DATA_TRAM, ORDEM_TRAM)
 
-fwrite(tram_df, 'produced_data/tramitacoes.csv')
+write.csv(tram_df, 'produced_data/tramitacoes.csv', row.names = FALSE)

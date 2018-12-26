@@ -15,8 +15,12 @@ if(!require(devtools)){
   install.packages('devtools')
 }
 
+install.packages('R6')
+install.packages('jsonlite')
 
 library(devtools)
+# SE windows 
+# install.packages("~/lightgbm_2.1.2.tar.gz", repos = NULL, type = "source")
 
 # Precisa de softwares auxiliares para a instalação
 # Ver https://github.com/Microsoft/LightGBM/tree/master/R-package

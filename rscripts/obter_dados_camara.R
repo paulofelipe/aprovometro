@@ -44,7 +44,7 @@ dados_situacao <- map(lista_proposicoes, ~ .x$situacao) %>%
 # Escrever Arquivos -------------------------------------------------------
 
 # Propostas
-write.csv(dados, 'produced_data/propostas.csv')
+write.csv(dados, 'produced_data/propostas.csv', row.names = FALSE)
 
 # Tramitações
 write.csv(dados_tram, 'produced_data/tramitacoes_camara.csv', row.names = FALSE)

@@ -145,28 +145,26 @@ library(lubridate)
 filtro_propostas <- fread('raw_data/propostas_detalhes.csv')$NOM_PROPOSICAO
 
 carregar_propostas <- function(ano){
-  arquivo_proposta <- paste0("https://dadosabertos.camara.leg.br/arquivos/proposicoes/proposicoes-",
+  arquivo_proposta <- paste0("https://dadosabertos.camara.leg.br/arquivos/proposicoes/csv/proposicoes-",
                              ano, ".csv")
 
-  propostas <- read.csv2(arquivo_proposta,
-                         stringsAsFactors = FALSE)
+  propostas <- read_csv2(arquivo_proposta)
 
   propostas <- propostas %>%
     filter(siglaTipo %in% c("PEC", "PL", "PLP")) %>%
     mutate(
       NOM_PROPOSICAO = paste0(siglaTipo," ", numero,"/", ano),
       DES_SITUACAO_PROPOSICAO = ultimoStatus_descricaoSituacao,
-      DATAPRESENTACAOPROPOSICAO = ymd(dataApresentacao),
+      DATAPRESENTACAOPROPOSICAO = date(dataApresentacao),
       REGIME = ultimoStatus_regime
     ) %>%
     select(id, NOM_PROPOSICAO, DES_SITUACAO_PROPOSICAO,
            DATAPRESENTACAOPROPOSICAO, REGIME)
 
-  arquivo_autores <- paste0("https://dadosabertos.camara.leg.br/arquivos/proposicoesAutores/proposicoesAutores-",
+  arquivo_autores <- paste0("https://dadosabertos.camara.leg.br/arquivos/proposicoesAutores/csv/proposicoesAutores-",
                             ano, ".csv")
 
-  autores <- read.csv2(arquivo_autores,
-                       stringsAsFactors = FALSE)
+  autores <- read_csv2(arquivo_autores)
 
   autores <- autores %>%
     rename(SIG_PARTIDO = siglaPartidoAutor,
@@ -187,4 +185,4 @@ anos <- 2003:2018
 
 propostas_detalhes <- map_df(anos, carregar_propostas)
 
-fwrite(propostas_detalhes, 'raw_data/propostas_detalhes.csv')
+write.csv(propostas_detalhes, 'raw_data/propostas_detalhes.csv', row.names = FALSE)
